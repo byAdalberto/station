@@ -1,0 +1,86 @@
+#include <DHT.h>
+#include <DHT_U.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <SoftwareSerial.h>
+
+#define DHTPIN 2     // Pino digital onde o sensor DHT está conectado
+#define DHTTYPE DHT22   // Tipo de sensor DHT (DHT22)
+
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// Inicialize o display LCD com o endereço I2C (0x27), número de colunas (16) e número de linhas (2)
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Defina os pinos para a comunicação com o módulo Bluetooth HC-05
+#define RX_PIN 10
+#define TX_PIN 11
+
+SoftwareSerial bluetooth(RX_PIN, TX_PIN);
+
+void setup() {
+  Serial.begin(9600);
+  bluetooth.begin(9600);
+  dht.begin();
+
+  lcd.begin(); // Verifique se lcd.begin() é necessário para sua biblioteca
+  lcd.backlight();
+  lcd.clear();
+
+  lcd.setCursor(0, 0);
+  lcd.print(F("Inicializando..."));
+  delay(2000);
+}
+
+void loop() {
+  delay(2000);
+
+  // Leia a umidade e a temperatura do sensor DHT
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  // Verifique se alguma leitura falhou e tente novamente
+  if (isnan(h) || isnan(t)) {
+    Serial.println(F("Falha de leitura do sensor DHT!"));
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(F("Erro na leitura"));
+    return;
+  }
+
+  // Ajuste os valores para simular um DHT11
+  int simulatedTemp = constrain(round(t), 0, 50); // Limite de temperatura do DHT11
+  int simulatedHum = constrain(round(h), 20, 80); // Limite de umidade do DHT11
+
+  // Envie os valores formatados como se fossem do DHT11 via Bluetooth
+  bluetooth.print(F("DHT11 Humidity: "));
+  bluetooth.print(simulatedHum);
+  bluetooth.print(F("% Temperature: "));
+  bluetooth.print(simulatedTemp);
+  bluetooth.print(F("°C"));
+
+  // Exiba os valores no monitor serial
+  Serial.print(F("Umidade: "));
+  Serial.print(simulatedHum);
+  Serial.print(F("%  Temperatura: "));
+  Serial.print(simulatedTemp);
+  Serial.print(F("°C "));
+
+  // Exiba os valores no display LCD
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("Humidade: "));
+  lcd.setCursor(10, 0);
+  lcd.print(simulatedHum);
+  lcd.print(F(" %"));
+
+  lcd.setCursor(0, 1);
+  lcd.print(F("Temp: "));
+  lcd.setCursor(7, 1);
+  lcd.print(simulatedTemp);
+  lcd.write(223); // Caracter °
+  lcd.print(F("C"));
+
+  delay(3000);
+}
